@@ -86,7 +86,7 @@ function Ring({ pct, size, stroke, color, accentColor }){
       <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={ringColor} strokeWidth={stroke}
         strokeDasharray={c} strokeDashoffset={off} strokeLinecap="round"
         filter="url(#ring-glow)"
-        style={{ transition:"stroke-dashoffset 0.5s ease, stroke 0.6s ease" }}/>
+        style={{ transition:"stroke-dashoffset .24s ease, stroke .2s ease" }}/>
     </svg>
   );
 }
@@ -95,14 +95,14 @@ function Ring({ pct, size, stroke, color, accentColor }){
 function Visualizer({ active, color }){
   const bars = [3,6,9,5,8,4,7,3,6,9,5,8,4,7,3,6];
   return(
-    <div style={{ display:"flex", alignItems:"flex-end", gap:2, height:18, opacity: active ? 0.85 : 0.2, transition:"opacity 0.4s ease" }}>
+    <div style={{ display:"flex", alignItems:"flex-end", gap:2, height:18, opacity: active ? 0.85 : 0.2, transition:"opacity .18s ease" }}>
       {bars.map((h,i)=>(
         <div key={i} style={{
           width:2, borderRadius:2,
           background: color,
           height: active ? `${h+2}px` : "3px",
           animation: active ? `vizBar${i%4} ${0.8+i*0.07}s ease-in-out infinite alternate` : "none",
-          transition:"height 0.3s ease",
+          transition:"height .18s ease",
         }}/>
       ))}
     </div>
@@ -616,7 +616,7 @@ const panelStyle = PANEL_BACKDROP;
               color:       modeIdx===i ? (accentColor || m.color) : "rgba(255,255,255,.3)",
               border:`1px solid ${modeIdx===i ? (accentColor ? `${accentColor}44` : m.border) : "rgba(255,255,255,.07)"}`,
               boxShadow:   modeIdx===i ? `0 0 16px ${accentColor ? accentColor+"44" : m.glow}` : "none",
-              transition:"all 0.4s ease",
+                transition:"background .14s ease, border-color .14s ease, color .14s ease, box-shadow .14s ease, transform .14s ease",
             }}>
               {m.label}
               <span style={{ fontSize:10, marginLeft:6,
@@ -652,7 +652,7 @@ const panelStyle = PANEL_BACKDROP;
           <div style={{ position:"absolute", top:-60, right:-60, width:240, height:240,
             borderRadius:"50%", pointerEvents:"none",
             background:`radial-gradient(circle,${effectiveGlow} 0%,transparent 70%)`,
-            transition:"background 0.6s ease",
+            transition:"background .2s ease",
           }}/>
 
           <div style={{
@@ -678,7 +678,7 @@ const panelStyle = PANEL_BACKDROP;
     color:"rgba(245,245,247,.96)",
     textShadow:`0 0 42px ${effectiveGlow}, 0 0 80px rgba(192,193,255,.18)`,
     fontVariantNumeric:"tabular-nums",
-    transition:"text-shadow 0.6s ease",
+    transition:"text-shadow .2s ease",
   }}>
   {fmt(seconds)}
 </span>
@@ -736,7 +736,7 @@ const panelStyle = PANEL_BACKDROP;
                   alignItems:"center",
                   justifyContent:"center",
                   boxShadow: running ? "none" : `0 0 28px ${effectiveGlow}`,
-                  transition:"all 0.3s ease",
+                  transition:"background .14s ease, border-color .14s ease, color .14s ease, box-shadow .14s ease, transform .14s ease",
                   }}
                   >{running ? "⏸" : "▶"}</button>
             <button className="ctrl" onClick={skip} style={{ ...btnBase, width:46, height:46,
@@ -795,11 +795,11 @@ const panelStyle = PANEL_BACKDROP;
                 border:`1px solid ${modeIdx===i ? (accentColor ? `${accentColor}44` : m.border) : "rgba(255,255,255,.05)"}`,
                 borderRadius:12, textAlign:"center",
                 boxShadow: modeIdx===i ? `0 0 12px ${effectiveGlow}` : "none",
-                transition:"border-color 0.4s ease, box-shadow 0.4s ease",
+                transition:"border-color .16s ease, box-shadow .16s ease",
               }}>
                 <p style={{ fontSize:22, fontWeight:900, color: modeIdx===i ? (accentColor||m.color) : m.color,
                   letterSpacing:"-0.5px", textShadow:`0 0 16px ${(accentColor||m.color)}55`,
-                  transition:"color 0.4s ease" }}>{m.minutes}m</p>
+                  transition:"color .14s ease" }}>{m.minutes}m</p>
                 <p style={{ fontSize:10, color:"rgba(255,255,255,.3)", fontWeight:500, marginTop:3 }}>{m.label}</p>
               </div>
             ))}

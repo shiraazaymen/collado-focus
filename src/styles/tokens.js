@@ -70,9 +70,9 @@ export function glassCardStyle(hasBg = false, wpOverlay = 0) {
       : "linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.04))",
     borderRadius:         RADIUS.card,
     border:               "1px solid rgba(255,255,255,.11)",
-    backdropFilter:       "blur(28px)",
-    WebkitBackdropFilter: "blur(28px)",
-    boxShadow:            "inset 0 1px 0 rgba(255,255,255,.14), 0 18px 50px rgba(0,0,0,.28), 0 0 42px rgba(192,193,255,.06)",
+    backdropFilter:       "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    boxShadow:            "inset 0 1px 0 rgba(255,255,255,.14), 0 16px 42px rgba(0,0,0,.25), 0 0 30px rgba(192,193,255,.045)",
   };
 }
 
@@ -83,7 +83,7 @@ export const BTN_BASE = {
   fontFamily:  FONT.family,
   outline:     "none",
   border:      "none",
-  transition:  "background .15s, border-color .15s, color .15s, transform .15s, box-shadow .15s",
+  transition:  "background .14s ease, border-color .14s ease, color .14s ease, transform .14s ease, box-shadow .14s ease",
 };
 
 // Panel/modal backdrop style
@@ -97,5 +97,5 @@ export const PANEL_BACKDROP = {
   alignItems:     "center",
   justifyContent: "center",
   padding:        SPACING.xl,
-  animation:      "overlayIn .2s ease both",
+  animation:      "overlayIn .18s ease both",
 };
