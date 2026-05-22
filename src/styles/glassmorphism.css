@@ -1,0 +1,73 @@
+/* ─── GLASSMORPHISM SYSTEM ───────────────────────────────────────────────────
+   CSS class equivalents of the glassCardStyle() token function.
+   Inline styles take precedence, so these serve as fallback / override points.
+   CSS custom properties are set by JS (see useThemeAccent hook) to propagate
+   accent colors without re-rendering the full component tree.
+────────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --pomo-accent:  #34d399;
+  --pomo-glow:    rgba(52, 211, 153, .35);
+  --pomo-border:  rgba(52, 211, 153, .28);
+  --pomo-bg:      #07070f;
+}
+
+/* Base glass card surface */
+.glass-card {
+  background:            rgba(8, 8, 20, .85);
+  border-radius:         20px;
+  border:                1px solid rgba(255, 255, 255, .09);
+  backdrop-filter:       blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+/* Used when no wallpaper is active — avoids unnecessary compositing layer */
+.glass-card--solid {
+  background:      #0f0f1c;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:      none;
+}
+
+/* Elevated hero card (ring card) */
+.glass-card--elevated {
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, .4),
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    0 0 60px var(--pomo-glow);
+  border-color: var(--pomo-border);
+}
+
+/* Panel modal content surface */
+.glass-panel {
+  background:    #0f0f1e;
+  border-radius: 22px;
+  border:        1px solid rgba(167, 139, 250, .22);
+  box-shadow:    0 0 60px rgba(167, 139, 250, .12);
+}
+
+/* Floating player */
+.glass-float {
+  background:            rgba(10, 10, 22, .93);
+  border-radius:         16px;
+  border:                1px solid rgba(250, 179, 86, .2);
+  backdrop-filter:       blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, .55),
+    inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+/* Inline error message (replaces alert() calls) */
+.inline-error {
+  font-size:    11px;
+  color:        #ff6b6b;
+  padding:      6px 10px;
+  border-radius: 8px;
+  background:   rgba(255, 80, 80, .08);
+  border:       1px solid rgba(255, 80, 80, .2);
+  margin-bottom: 10px;
+}

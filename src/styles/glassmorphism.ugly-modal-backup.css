@@ -1,0 +1,427 @@
+/* ─── GLASSMORPHISM SYSTEM ───────────────────────────────────────────────────
+   CSS class equivalents of the glassCardStyle() token function.
+   Inline styles take precedence, so these serve as fallback / override points.
+   CSS custom properties are set by JS (see useThemeAccent hook) to propagate
+   accent colors without re-rendering the full component tree.
+────────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --pomo-accent:  #34d399;
+  --pomo-glow:    rgba(52, 211, 153, .35);
+  --pomo-border:  rgba(52, 211, 153, .28);
+  --pomo-bg:      #07070f;
+}
+
+/* Base glass card surface */
+.glass-card {
+  background:            rgba(8, 8, 20, .85);
+  border-radius:         20px;
+  border:                1px solid rgba(255, 255, 255, .09);
+  backdrop-filter:       blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .06);
+}
+
+/* Used when no wallpaper is active — avoids unnecessary compositing layer */
+.glass-card--solid {
+  background:      #0f0f1c;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow:      none;
+}
+
+/* Elevated hero card (ring card) */
+.glass-card--elevated {
+  box-shadow:
+    0 16px 48px rgba(0, 0, 0, .4),
+    inset 0 1px 0 rgba(255, 255, 255, .08),
+    0 0 60px var(--pomo-glow);
+  border-color: var(--pomo-border);
+}
+
+/* Panel modal content surface */
+.glass-panel {
+  background:    #0f0f1e;
+  border-radius: 22px;
+  border:        1px solid rgba(167, 139, 250, .22);
+  box-shadow:    0 0 60px rgba(167, 139, 250, .12);
+}
+
+/* Floating player */
+.glass-float {
+  background:            rgba(10, 10, 22, .93);
+  border-radius:         16px;
+  border:                1px solid rgba(250, 179, 86, .2);
+  backdrop-filter:       blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 8px 40px rgba(0, 0, 0, .55),
+    inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+/* Inline error message (replaces alert() calls) */
+.inline-error {
+  font-size:    11px;
+  color:        #ff6b6b;
+  padding:      6px 10px;
+  border-radius: 8px;
+  background:   rgba(255, 80, 80, .08);
+  border:       1px solid rgba(255, 80, 80, .2);
+  margin-bottom: 10px;
+}
+
+/* ─── EDIT MODAL STYLING & RESPONSIVENESS ────────────────────────────────── */
+
+.edit-modal-panel {
+  width: min(92vw, 480px) !important;
+  max-height: calc(100vh - 32px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.045)) !important;
+  backdrop-filter: blur(32px) !important;
+  -webkit-backdrop-filter: blur(32px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 36px !important;
+  padding: 26px 28px !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent !important;
+}
+
+.edit-modal-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.edit-modal-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+.edit-modal-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+}
+
+.edit-timer-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 26px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10) !important;
+  padding: 20px 22px !important;
+  margin-bottom: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+}
+
+.edit-timer-card-header {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 12px !important;
+}
+
+.edit-timer-card-body {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.edit-timer-controls {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  flex-shrink: 0 !important;
+}
+
+.min-label {
+  font-size: 11px !important;
+  color: rgba(255, 255, 255, 0.25) !important;
+  font-weight: 600 !important;
+  margin-left: 2px !important;
+}
+
+/* Custom premium slider */
+.glass-slider {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  flex: 1 !important;
+  height: 6px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  outline: none !important;
+  cursor: pointer !important;
+  transition: background 0.2s !important;
+}
+
+.glass-slider::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.glass-slider::-moz-range-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.glass-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5), 0 0 10px var(--slider-color, #34d399);
+  cursor: pointer;
+  margin-top: -6px;
+  transition: transform 0.15s ease, background-color 0.15s;
+  border: 3px solid var(--slider-color, #34d399);
+}
+
+.glass-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: #ffffff;
+}
+
+.glass-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 3px solid var(--slider-color, #34d399);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.5), 0 0 10px var(--slider-color, #34d399);
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s;
+}
+
+.glass-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  background: #ffffff;
+}
+
+/* Custom number inputs */
+.apple-number-input {
+  width: 80px !important;
+  height: 42px !important;
+  padding: 6px 2px !important;
+  text-align: center !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  border-radius: 16px !important;
+  color: rgba(245, 245, 247, 0.95) !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+  font-family: inherit !important;
+  outline: none !important;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.2) !important;
+  transition: border-color 0.2s, background-color 0.2s !important;
+  -moz-appearance: textfield !important;
+}
+
+.apple-number-input:focus {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  background: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.1) !important;
+}
+
+.apple-number-input::-webkit-outer-spin-button,
+.apple-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Custom time input */
+.glass-time-input {
+  width: 100% !important;
+  padding: 12px 16px !important;
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  color: rgba(245, 245, 247, 0.95) !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  outline: none !important;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.2) !important;
+  box-sizing: border-box !important;
+  font-family: inherit !important;
+  color-scheme: dark !important;
+  transition: border-color 0.2s, background-color 0.2s !important;
+}
+
+.glass-time-input:focus {
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+
+.glass-time-input::-webkit-calendar-picker-indicator {
+  filter: invert(1) sepia(1) saturate(5) hue-rotate(240deg);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.glass-time-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 0.95;
+}
+
+/* Edit Modal Close Button */
+.edit-modal-close {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: rgba(255, 255, 255, 0.45) !important;
+  font-size: 15px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.edit-modal-close:hover {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.edit-timer-btn {
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 14px !important;
+  background: rgba(255, 255, 255, 0.075) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  color: rgba(245, 245, 247, 0.85) !important;
+  font-size: 18px !important;
+  font-weight: 500 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+}
+
+.edit-timer-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  color: #fff !important;
+}
+
+/* Actions layout */
+.edit-modal-actions {
+  display: flex !important;
+  gap: 8px !important;
+  margin-top: 16px !important;
+  width: 100% !important;
+}
+
+.btn-save-reset {
+  flex: 1.3 !important;
+  padding: 12px 16px !important;
+  border-radius: 20px !important;
+  border: none !important;
+  color: #fff !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  height: 46px !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-cancel {
+  flex: 1 !important;
+  padding: 12px 14px !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: rgba(245, 245, 247, 0.85) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  height: 46px !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-cancel:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #fff !important;
+}
+
+.btn-defaults {
+  flex: 0.9 !important;
+  padding: 12px 14px !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, 0.06) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  color: rgba(245, 245, 247, 0.85) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  height: 46px !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-defaults:hover {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: #fff !important;
+}
+
+/* Responsive styles */
+@media (max-width: 640px) {
+  .edit-modal-panel {
+    width: calc(100vw - 24px) !important;
+    max-height: calc(100vh - 24px) !important;
+    border-radius: 28px !important;
+    padding: 20px 22px !important;
+  }
+
+  .edit-timer-card {
+    padding: 16px !important;
+    margin-bottom: 12px !important;
+    border-radius: 22px !important;
+  }
+
+  .edit-timer-card-body {
+    flex-wrap: wrap !important;
+    gap: 10px 0px !important;
+  }
+
+  .glass-slider {
+    width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+
+  .edit-timer-controls {
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+
+  .edit-modal-actions {
+    flex-direction: column !important;
+    gap: 8px !important;
+    margin-top: 10px !important;
+  }
+
+  .edit-modal-actions button {
+    width: 100% !important;
+    padding: 12px 16px !important;
+    border-radius: 20px !important;
+    flex: none !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .edit-modal-panel {
+    border-radius: 24px !important;
+    padding: 16px 18px !important;
+  }
+
+  .edit-timer-card {
+    border-radius: 18px !important;
+    padding: 12px 14px !important;
+  }
+}
