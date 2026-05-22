@@ -7,7 +7,6 @@ import { useFloatingPlayer } from "./hooks/useFloatingPlayer";
 import { STORAGE_KEYS } from "./utils/constants";
 import { formatTime, formatTimerAriaLabel } from "./utils/formatters";
 import { glassCardStyle, BTN_BASE,PANEL_BACKDROP } from "./styles/tokens";
-import "./styles/glassmorphism.css";
 import WallpaperBackground from "./components/wallpaper/WallpaperBackground";
 import { getFocusDayBounds, isSessionInFocusDay, parseTimeInputToMinutes, formatMinutesToTimeInput,} from "./utils/focusDay";
 // ─── CONSTANTS ─────────────────────────────────────────────────────────────
@@ -129,7 +128,6 @@ const {
   focusDayStartMinutes,
 });
   const [showEdit, setShowEdit] = useState(false);
-  const [sessionLogOpen, setSessionLogOpen] = useState(false);
   const [editVals, setEditVals] = useState({ focus:25, short:5, long:15 });
   const [editingId,   setEditingId]   = useState(null);
   const [editingText, setEditingText] = useState("");
@@ -137,11 +135,15 @@ const {
   // ── Wallpaper state (Feature 1 + 4 + 7) ──
   const [showWpPanel, setShowWpPanel] = useState(false);
   const [wpCategory,    setWpCategory]    = useState("Nature");
+  const [wpInputVal,    setWpInputVal]    = useState("");
+  const [videoInputVal, setVideoInputVal] = useState("");
   const fileInputRef  = useRef(null);
+  const videoInputRef = useRef(null);
   const {
   wallpaper, customWpUrl, videoWpUrl, wpOverlay, hasBg,
   prevWallpaper, prevVisible, nextLoaded, accentColor,
-  applyPreset, applyImageFile, clearWallpaper,
+  applyPreset, applyCustomUrl, applyImageFile,
+  applyVideoUrl, applyVideoFile, clearWallpaper,
   setWpOverlay,
 } = useWallpaper({
   initialWallpaper:   initialValues.wallpaper,
@@ -177,49 +179,6 @@ const {
   const todayLog = log.filter(entry =>
     typeof entry === "string" || isSessionInFocusDay(entry.completedAt, focusDayBounds)
   );
-  const sessionObjects = todayLog.filter(entry => typeof entry !== "string");
-  const focusSessionCount = sessionObjects.filter(entry => entry.mode === "focus").length;
-  const breakSessionCount = todayLog.filter(entry =>
-    typeof entry === "string"
-      ? entry.toLowerCase().includes("break")
-      : entry.mode && entry.mode !== "focus"
-  ).length;
-  const focusSecondsToday = sessionObjects
-    .filter(entry => entry.mode === "focus")
-    .reduce((sum, entry) => sum + (Number(entry.seconds) || modes[0].minutes * 60), 0);
-  const longestSessionSeconds = sessionObjects.reduce(
-    (max, entry) => Math.max(max, Number(entry.seconds) || 0),
-    0
-  );
-  const latestSessionPreview = todayLog[0];
-  const focusDayRangeLabel = `${new Date(focusDayBounds.start).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })} - ${new Date(focusDayBounds.end).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" })}`;
-
-  function formatSessionDuration(totalSeconds = 0) {
-    const safeSeconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
-    const hours = Math.floor(safeSeconds / 3600);
-    const minutes = Math.floor((safeSeconds % 3600) / 60);
-    if (hours && minutes) return `${hours}h ${minutes}m`;
-    if (hours) return `${hours}h`;
-    return `${minutes || Math.ceil(safeSeconds / 60) || 0}m`;
-  }
-
-  function getSessionLabel(entry) {
-    if (typeof entry === "string") return entry;
-    return entry.customLabel || entry.subject || entry.label || entry.mode || "Session";
-  }
-
-  function getSessionModeMeta(entry) {
-    const modeKey = typeof entry === "string" ? "break" : entry.mode;
-    if (modeKey === "focus") return { label:"Focus", color:"#34d399" };
-    if (modeKey === "long") return { label:"Long Break", color:"#a78bfa" };
-    if (modeKey === "short") return { label:"Short Break", color:"#60a5fa" };
-    return { label:"Break", color:"#60a5fa" };
-  }
-
-  function getSessionTime(entry) {
-    if (typeof entry === "string" || !entry.completedAt) return "";
-    return new Date(entry.completedAt).toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
-  }
 
 // ── Persist Snapshot ──
   usePersistSnapshot({
@@ -409,77 +368,122 @@ const panelStyle = PANEL_BACKDROP;
 
       {/* ═══ WALLPAPER PANEL ═══ */}
       {showWpPanel && (
-        <div className="wallpaper-modal-backdrop" style={panelStyle} onClick={()=>setShowWpPanel(false)}>
-          <div className="fu wallpaper-modal-panel glass-panel" onClick={e=>e.stopPropagation()}>
-            <div className="wallpaper-modal-header">
+        <div style={panelStyle} onClick={()=>setShowWpPanel(false)}>
+          <div className="fu" onClick={e=>e.stopPropagation()} style={{
+            width:"100%", maxWidth:500, background:"#0f0f1e",
+            border:"1px solid rgba(167,139,250,.22)", borderRadius:22, padding:24,
+            boxShadow:"0 0 60px rgba(167,139,250,.12)", maxHeight:"90vh", overflowY:"auto",
+          }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:18 }}>
               <div>
-                <p style={{ fontSize:18, fontWeight:800, letterSpacing:"-0.4px", color:"rgba(245,245,247,.95)" }}>Wallpaper</p>
-                <p style={{ fontSize:12, color:"rgba(255,255,255,.36)", marginTop:4 }}>Personalize your focus space</p>
+                <p style={{ fontSize:17, fontWeight:800, letterSpacing:"-0.3px" }}>🖼 Wallpaper</p>
+                <p style={{ fontSize:12, color:"rgba(255,255,255,.3)", marginTop:3 }}>Personalize your focus space</p>
               </div>
-              <button className="wallpaper-close-btn" style={btnBase}
+              <button style={{ ...btnBase, background:"transparent", border:"none", color:"rgba(255,255,255,.2)", fontSize:18 }}
                 onClick={()=>setShowWpPanel(false)}>✕</button>
             </div>
 
             {/* Feature 6: Category tabs */}
-            <div className="wallpaper-category-tabs">
+            <div style={{ display:"flex", gap:4, flexWrap:"wrap", marginBottom:14 }}>
               {Object.keys(WALLPAPER_CATEGORIES).map(cat=>(
-                <button key={cat} className={`wallpaper-category-pill ${wpCategory===cat ? "is-active" : ""}`} style={btnBase} onClick={()=>setWpCategory(cat)}>{cat}</button>
+                <button key={cat} style={{
+                  ...btnBase, padding:"4px 10px", borderRadius:8, fontSize:11, fontWeight:600,
+                  background: wpCategory===cat ? "rgba(167,139,250,.2)" : "rgba(255,255,255,.04)",
+                  border: wpCategory===cat ? "1px solid rgba(167,139,250,.4)" : "1px solid rgba(255,255,255,.08)",
+                  color: wpCategory===cat ? "#a78bfa" : "rgba(255,255,255,.4)",
+                }} onClick={()=>setWpCategory(cat)}>{cat}</button>
               ))}
             </div>
 
             {/* Presets grid for selected category */}
-            <div key={wpCategory} className="wallpaper-grid-flow">
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:18 }}>
               {WALLPAPER_CATEGORIES[wpCategory].map(wp=>(
-                <div key={wp.label} className={`wp-preset glass-card-soft glass-card-hover ${wallpaper===wp.value ? "is-selected" : ""}`} onClick={()=>applyPreset(wp.value)}
+                <div key={wp.label} className="wp-preset" onClick={()=>applyPreset(wp.value)}
                   style={{
-                    overflow:"hidden", aspectRatio:"16/9", position:"relative",
+                    borderRadius:12, overflow:"hidden", aspectRatio:"16/9", position:"relative",
                     backgroundImage: wp.value !== "none" ? `url("${wp.value}")` : undefined,
                     backgroundSize:"cover", backgroundPosition:"center",
                     background: wp.value === "none" ? wp.preview : undefined,
+                    border: wallpaper===wp.value ? "2px solid #a78bfa" : "2px solid transparent",
                   }}>
-                  <div className="wallpaper-preset-overlay">
-                    <span>{wp.label}</span>
+                  <div style={{
+                    position:"absolute", inset:0,
+                    background: wp.value==="none" ? "rgba(255,255,255,.04)" : "rgba(0,0,0,.35)",
+                    display:"flex", alignItems:"flex-end", padding:4,
+                  }}>
+                    <span style={{ fontSize:9, fontWeight:700, color:"rgba(255,255,255,.8)" }}>{wp.label}</span>
                   </div>
                   {wallpaper===wp.value && (
-                    <div className="wallpaper-selected-check">✓</div>
+                    <div style={{ position:"absolute", top:4, right:4, width:14, height:14,
+                      background:"#a78bfa", borderRadius:"50%",
+                      display:"flex", alignItems:"center", justifyContent:"center", fontSize:8, fontWeight:900 }}>✓</div>
                   )}
                 </div>
               ))}
             </div>
 
             {/* Custom URL */}
-            {/* File upload */}
-            <div className="wallpaper-upload-section">
-              <p className="wallpaper-section-label">Custom Wallpaper</p>
-              <p className="wallpaper-section-helper">Recommended: 1920×1080 or higher, 16:9 ratio, JPG/PNG/WEBP, max 5MB.</p>
-              <button className="wallpaper-upload-card" style={btnBase}
-                onClick={()=>fileInputRef.current?.click()}>
-                <span className="wallpaper-upload-icon">+</span>
-                <span>Choose image file</span>
-                <small>JPG, PNG, WEBP</small>
-              </button>
-              {customWpUrl && (
-                <button className="wallpaper-clear-upload-btn" style={btnBase}
-                  onClick={clearWallpaper}>Clear uploaded wallpaper</button>
-              )}
+            <p style={{ fontSize:11, fontWeight:700, letterSpacing:"0.14em", textTransform:"uppercase",
+              color:"rgba(255,255,255,.3)", marginBottom:8 }}>Custom Image URL</p>
+            <div style={{ display:"flex", gap:6, marginBottom:20 }}>
+              <input type="text" placeholder="https://example.com/image.jpg"
+                value={wpInputVal} onChange={e=>setWpInputVal(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&applyCustomUrl(wpInputVal)}
+                style={{ flex:1, padding:"9px 12px", borderRadius:10, fontSize:12,
+                  background:"rgba(255,255,255,.05)", border:"1px solid rgba(255,255,255,.1)",
+                  color:"#fff", outline:"none", fontFamily:"inherit" }}/>
+              <button style={{ ...btnBase, padding:"9px 14px", borderRadius:10,
+                background:"linear-gradient(135deg,#7c3aed,#a855f7)", border:"none",
+                color:"#fff", fontWeight:700, fontSize:12 }}
+                onClick={applyCustomUrl}>Apply</button>
             </div>
-            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp"
+
+            {/* Feature 7: Video wallpaper */}
+            <p style={{ fontSize:11, fontWeight:700, letterSpacing:"0.14em", textTransform:"uppercase",
+              color:"rgba(255,255,255,.3)", marginBottom:8 }}>Video Wallpaper (mp4 / webm)</p>
+            <div style={{ display:"flex", gap:6, marginBottom:8 }}>
+              <input type="text" placeholder="https://example.com/video.mp4"
+                value={videoInputVal} onChange={e=>setVideoInputVal(e.target.value)}
+                onKeyDown={e=>e.key==="Enter"&&applyVideoUrl(videoInputVal)}
+                style={{ flex:1, padding:"9px 12px", borderRadius:10, fontSize:12,
+                  background:"rgba(255,255,255,.05)", border:"1px solid rgba(255,255,255,.1)",
+                  color:"#fff", outline:"none", fontFamily:"inherit" }}/>
+              <button style={{ ...btnBase, padding:"9px 14px", borderRadius:10,
+                background:"linear-gradient(135deg,#7c3aed,#a855f7)", border:"none",
+                color:"#fff", fontWeight:700, fontSize:12 }}
+                onClick={() => applyVideoUrl(videoInputVal)}>Apply</button>
+            </div>
+            <button style={{ ...btnBase, width:"100%", padding:"10px 16px", borderRadius:10,
+              background:"rgba(255,255,255,.04)", border:"1px dashed rgba(255,255,255,.15)",
+              color:"rgba(255,255,255,.5)", fontSize:12, fontWeight:600, marginBottom:14 }}
+              onClick={()=>videoInputRef.current?.click()}>
+              🎬 Upload video file (MP4, WEBM)
+            </button>
+            <input ref={videoInputRef} type="file" accept="video/mp4,video/webm"
+              style={{ display:"none" }} onChange={e => applyVideoFile(e.target.files?.[0])}/>
+
+            {/* File upload */}
+            <p style={{ fontSize:11, fontWeight:700, letterSpacing:"0.14em", textTransform:"uppercase",
+              color:"rgba(255,255,255,.3)", marginBottom:8 }}>Upload Image from Device</p>
+            <button style={{ ...btnBase, width:"100%", padding:"11px 16px", borderRadius:10,
+              background:"rgba(255,255,255,.04)", border:"1px dashed rgba(255,255,255,.15)",
+              color:"rgba(255,255,255,.5)", fontSize:12, fontWeight:600, marginBottom:18 }}
+              onClick={()=>fileInputRef.current?.click()}>
+              📁 Choose image file (JPG, PNG, WEBP)
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*"
               style={{ display:"none" }} onChange={e => applyImageFile(e.target.files?.[0])}/>
 
             {/* Overlay darkness */}
             {hasBg && (
               <>
-                <div className="wallpaper-atmosphere-heading">
-                  <div>
-                    <p className="wallpaper-section-label">Atmosphere</p>
-                    <p className="wallpaper-section-helper">Overlay darkness</p>
-                  </div>
-                  <span>{Math.round(wpOverlay*100)}%</span>
-                </div>
+                <p style={{ fontSize:11, fontWeight:700, letterSpacing:"0.14em", textTransform:"uppercase",
+                  color:"rgba(255,255,255,.3)", marginBottom:8 }}>
+                  Overlay Darkness — {Math.round(wpOverlay*100)}%
+                </p>
                 <input type="range" min={0} max={100} value={Math.round(wpOverlay*100)}
                   onChange={e=>setWpOverlay(Number(e.target.value)/100)}
-                  className="glass-slider wallpaper-overlay-slider"
-                  style={{ "--slider-color":"#c0c1ff" }}/>
+                  style={{ width:"100%", accentColor:"#a78bfa", cursor:"pointer", marginBottom:4 }}/>
                 <div style={{ display:"flex", justifyContent:"space-between", fontSize:10,
                   color:"rgba(255,255,255,.25)", marginBottom:16 }}>
                   <span>Bright</span><span>Dark</span>
@@ -487,11 +491,15 @@ const panelStyle = PANEL_BACKDROP;
               </>
             )}
 
-            <div className="wallpaper-actions">
-              <button className="wallpaper-done-btn" style={btnBase}
+            <div style={{ display:"flex", gap:8 }}>
+              <button style={{ ...btnBase, flex:1, padding:11, borderRadius:10, border:"none",
+                background:"linear-gradient(135deg,#7c3aed,#a855f7)",
+                color:"#fff", fontWeight:800, fontSize:13 }}
                 onClick={()=>setShowWpPanel(false)}>Done</button>
               {hasBg && (
-                <button className="wallpaper-remove-btn" style={btnBase}
+                <button style={{ ...btnBase, padding:"11px 14px", borderRadius:10,
+                  background:"transparent", border:"1px solid rgba(255,255,255,.09)",
+                  color:"rgba(255,255,255,.4)", fontSize:12 }}
                   onClick={()=>{ clearWallpaper(); }}>Remove</button>
               )}
             </div>
@@ -502,7 +510,7 @@ const panelStyle = PANEL_BACKDROP;
       {/* ═══ EDIT MODAL ═══ */}
       {showEdit && (
         <div style={panelStyle} onClick={()=>setShowEdit(false)}>
-          <div className="fu edit-modal-panel glass-panel" onClick={e=>e.stopPropagation()} style={{
+          <div className="fu edit-modal-panel" onClick={e=>e.stopPropagation()} style={{
             boxShadow: `0 24px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12), 0 0 35px ${effectiveGlow || "rgba(192, 193, 255, 0.15)"}`,
           }}>
             <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:20 }}>
@@ -517,7 +525,7 @@ const panelStyle = PANEL_BACKDROP;
               { key:"short", label:"Short Break",   color:"#60a5fa", max:30 },
               { key:"long",  label:"Long Break",    color:"#a78bfa", max:60 },
             ].map(item=>(
-              <div key={item.key} className="edit-timer-card glass-card-soft">
+              <div key={item.key} className="edit-timer-card">
                 <div className="edit-timer-card-header">
                   <span style={{ fontSize:13, fontWeight:700, color:item.color }}>{item.label}</span>
                   <span style={{ fontSize:10, color:"rgba(255,255,255,.2)" }}>max {item.max} min</span>
@@ -547,7 +555,7 @@ const panelStyle = PANEL_BACKDROP;
               </div>
             ))}
             {/* Focus day start */}
-            <div className="edit-timer-card glass-card-soft">
+            <div className="edit-timer-card">
               <div style={{ display:"flex", alignItems:"center",
                 justifyContent:"space-between", marginBottom:10 }}>
                 <span style={{ fontSize:13, fontWeight:700, color:"#f0abfc" }}>Focus Day Starts At</span>
@@ -628,8 +636,7 @@ const panelStyle = PANEL_BACKDROP;
         </div>
 
         {/* Ring card — Apple glass hero */}
-<div className="fu fu1 pop glass-card--elevated collado-main-timer-card" style={{
-  "--pomo-glow": effectiveGlow,
+<div className="fu fu1 pop" style={{
   padding:"clamp(34px,6vw,64px) clamp(20px,5vw,48px) 34px",
   marginBottom:28,
   borderRadius:40,
@@ -754,7 +761,7 @@ const panelStyle = PANEL_BACKDROP;
             { label:"Full Cycles", val:cycles,                          color:"#a78bfa", glow:"rgba(167,139,250,.2)" },
             { label:"Focus Time",  val:`${sessions*modes[0].minutes}m`, color:"#60a5fa", glow:"rgba(96,165,250,.2)"  },
           ].map(stat=>(
-            <div key={stat.label} className="glass-card-soft glass-card-hover collado-stat-card" style={{ ...glassCard, padding:"16px 12px", textAlign:"center",
+            <div key={stat.label} style={{ ...glassCard, padding:"16px 12px", textAlign:"center",
               marginBottom:0, position:"relative", overflow:"hidden" }}>
               <div style={{ position:"absolute", inset:0, borderRadius:20,
                 background:`radial-gradient(circle at 50% 0%,${stat.glow} 0%,transparent 70%)`,
@@ -769,7 +776,7 @@ const panelStyle = PANEL_BACKDROP;
         </div>
 
         {/* Timer setup card — Feature 2: glassmorphism */}
-        <div className="fu fu3 glass-card collado-section-card" style={{ ...glassCard, padding:"20px 22px" }}>
+        <div className="fu fu3" style={{ ...glassCard, padding:"18px 20px" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
               <div style={{ width:32, height:32, borderRadius:10,
@@ -790,7 +797,7 @@ const panelStyle = PANEL_BACKDROP;
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:8 }}>
             {modes.map((m,i)=>(
-              <div key={m.key} className="glass-card-soft collado-mode-mini-card" style={{ padding:"12px 10px",
+              <div key={m.key} style={{ padding:"12px 10px",
                 background:"rgba(255,255,255,.025)",
                 border:`1px solid ${modeIdx===i ? (accentColor ? `${accentColor}44` : m.border) : "rgba(255,255,255,.05)"}`,
                 borderRadius:12, textAlign:"center",
@@ -807,58 +814,28 @@ const panelStyle = PANEL_BACKDROP;
         </div>
 
         {/* Session log */}
-        {(
-          <div className={`fu fu4 session-log-shell ${sessionLogOpen ? "is-open" : ""}`}>
-            <button
-              type="button"
-              className="session-log-header"
-              aria-expanded={sessionLogOpen}
-              onClick={() => setSessionLogOpen(open => !open)}
-              style={btnBase}>
-              <span className="session-log-icon">▦</span>
-              <span className="session-log-title-block">
-                <span className="session-log-title">Session Log</span>
-                <span className="session-log-subtitle">Today's focus history</span>
-                <span className="session-log-preview">
-                  {focusSessionCount} {focusSessionCount === 1 ? "session" : "sessions"} · {formatSessionDuration(focusSecondsToday)} focused
-                  {latestSessionPreview ? ` · latest: ${getSessionLabel(latestSessionPreview)}` : ""}
-                </span>
-              </span>
-              <span className="session-log-range">{focusDayRangeLabel}</span>
-              <span className="session-log-chevron">⌄</span>
-            </button>
-
-            {sessionLogOpen && (
-              <div className="session-log-content">
-                <div className="session-log-summary-grid">
-                  <div className="session-log-stat">
-                    <span>{focusSessionCount}</span>
-                    <p>Focus sessions</p>
-                  </div>
-                  <div className="session-log-stat">
-                    <span>{formatSessionDuration(focusSecondsToday)}</span>
-                    <p>Total focus time</p>
-                  </div>
-                  <div className="session-log-stat">
-                    <span>{breakSessionCount}</span>
-                    <p>Breaks completed</p>
-                  </div>
-                  <div className="session-log-stat">
-                    <span>{formatSessionDuration(longestSessionSeconds)}</span>
-                    <p>Longest session</p>
-                  </div>
-                </div>
-
-                {todayLog.length === 0 ? (
-                  <div className="session-log-empty">
-                    No sessions yet. Complete a focus session and it'll appear here.
-                  </div>
-                ) : (
-            <div className="session-log-list">
+        {todayLog.length > 0 && (
+          <div className="fu fu4" style={{ ...glassCard, padding:"18px 20px" }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
+              <div style={{ width:32, height:32, borderRadius:10,
+                background:"linear-gradient(135deg,rgba(96,165,250,.2),rgba(167,139,250,.15))",
+                border:"1px solid rgba(96,165,250,.2)",
+                display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>📋</div>
+              <div>
+                <p style={{ fontSize:13, fontWeight:700 }}>Session Log</p>
+                <p style={{ fontSize:10, color:"rgba(255,255,255,.3)", marginTop:1 }}>
+                  {todayLog.length} entries · focus day
+                </p>
+              </div>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
               {todayLog.map((entry, i) => {
                 // legacy string
                 if (typeof entry === "string") return (
-                  <div key={i} className="session-log-row is-legacy" style={{ animationDelay:`${i*0.04}s`,
+                  <div key={i} className="log-row" style={{ animationDelay:`${i*0.04}s`,
+                    padding:"9px 12px", borderRadius:10,
+                    background:"rgba(255,255,255,.025)", border:"1px solid rgba(255,255,255,.05)",
+                    fontSize:12, fontWeight:500,
                     color: entry.startsWith("✓") ? "#34d399" : "rgba(255,255,255,.4)" }}>
                     {entry}
                   </div>
@@ -866,16 +843,18 @@ const panelStyle = PANEL_BACKDROP;
                 // object entry
                 const isFocus    = entry.mode === "focus";
                 const isEditing  = editingId === entry.id;
-                const display    = getSessionLabel(entry);
-                const timeStr    = getSessionTime(entry);
-                const meta       = getSessionModeMeta(entry);
+                const display    = entry.customLabel || entry.subject || entry.label || (isFocus ? "Focus" : "Break");
+                const timeStr    = new Date(entry.completedAt)
+                  .toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
                 return (
-                  <div key={entry.id} className="session-log-row"
-                    style={{ animationDelay:`${i*0.04}s`, "--session-color":meta.color,
+                  <div key={entry.id} className="log-row"
+                    style={{ animationDelay:`${i*0.04}s`,
                       padding:"9px 12px", borderRadius:10,
                       background:"rgba(255,255,255,.025)", border:"1px solid rgba(255,255,255,.05)",
                       display:"flex", alignItems:"center", gap:8 }}>
-                    <span className="session-log-mode-dot"/>
+                    <span style={{ width:6, height:6, borderRadius:"50%", flexShrink:0,
+                      background: isFocus ? "#34d399" : "rgba(255,255,255,.25)",
+                      boxShadow: isFocus ? "0 0 6px #34d399" : "none" }}/>
                     {isEditing ? (
                       <>
                         <input autoFocus value={editingText}
@@ -949,9 +928,7 @@ const panelStyle = PANEL_BACKDROP;
                         {isFocus ? `✓ ${display}` : display}
                       </span>
                     )}
-                    <span className="session-log-mode-label">{meta.label}</span>
-                    <span className="session-log-time">{timeStr}</span>
-                    <span className="session-log-duration">{formatSessionDuration(entry.seconds)}</span>
+                    <span style={{ fontSize:10, color:"rgba(255,255,255,.22)", flexShrink:0 }}>{timeStr}</span>
                     {isFocus && !isEditing && (
                       <span onClick={() => { setEditingId(entry.id); setEditingText(entry.customLabel || entry.subject || ""); }}
                         style={{
@@ -979,9 +956,6 @@ const panelStyle = PANEL_BACKDROP;
                 );
               })}
             </div>
-                )}
-              </div>
-            )}
           </div>
         )}
       </main>

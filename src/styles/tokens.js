@@ -13,8 +13,8 @@ export const RADIUS = {
   md:   10,
   lg:   14,
   xl:   16,
-  card: 20,
-  panel: 22,
+  card: 30,
+  panel: 34,
   full: 9999,
 };
 
@@ -65,14 +65,14 @@ export function cardBackground(wpOverlay = 0) {
 // to avoid unnecessary GPU compositing layers on the default dark background.
 export function glassCardStyle(hasBg = false, wpOverlay = 0) {
   return {
-    background:           hasBg ? glassBackground(wpOverlay) : "#0f0f1c",
+    background:           hasBg
+      ? `linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.04)), ${glassBackground(wpOverlay)}`
+      : "linear-gradient(145deg,rgba(255,255,255,.09),rgba(255,255,255,.04))",
     borderRadius:         RADIUS.card,
-    border:               "1px solid rgba(255,255,255,.09)",
-    backdropFilter:       hasBg ? "blur(18px)" : "none",
-    WebkitBackdropFilter: hasBg ? "blur(18px)" : "none",
-    boxShadow:            hasBg
-      ? "0 8px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06)"
-      : "none",
+    border:               "1px solid rgba(255,255,255,.11)",
+    backdropFilter:       "blur(28px)",
+    WebkitBackdropFilter: "blur(28px)",
+    boxShadow:            "inset 0 1px 0 rgba(255,255,255,.14), 0 18px 50px rgba(0,0,0,.28), 0 0 42px rgba(192,193,255,.06)",
   };
 }
 

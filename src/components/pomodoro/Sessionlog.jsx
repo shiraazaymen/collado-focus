@@ -27,7 +27,7 @@ const SessionLog = React.memo(function SessionLog({ log, hasBg, wpOverlay }) {
             fontSize:       14,
           }}
         >
-          📋
+          
         </div>
         <div>
           <p style={{ fontSize: 13, fontWeight: 700 }}>Session Log</p>
