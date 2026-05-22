@@ -8,6 +8,7 @@ import { STORAGE_KEYS } from "./utils/constants";
 import { formatTime, formatTimerAriaLabel } from "./utils/formatters";
 import { glassCardStyle, BTN_BASE,PANEL_BACKDROP } from "./styles/tokens";
 import WallpaperBackground from "./components/wallpaper/WallpaperBackground";
+import { getFocusDayBounds, isSessionInFocusDay, parseTimeInputToMinutes, formatMinutesToTimeInput,} from "./utils/focusDay";
 // ─── CONSTANTS ─────────────────────────────────────────────────────────────
 
 const DEFAULT_MODES = [
@@ -112,17 +113,24 @@ function Visualizer({ active, color }){
 export default function Pomodoro({ onNavigate }) {
   // ── Core timer state ──
 const { initialValues } = usePersistentPomodoro();
+const [focusDayStartMinutes, setFocusDayStartMinutes] = useState(
+  () => initialValues.focusDayStartMinutes ?? 0
+);
 const {
   modes, modeIdx, seconds, running, sessions, cycles, log, mode,
   modeRemaining,
   total, toggle, reset, skip, switchMode, saveSettings,
+  editSessionLabel,
 } = usePomodoroTimer({
   initialModes:   initialValues.modes,
   initialModeIdx: initialValues.modeIdx,
   initialValues,
+  focusDayStartMinutes,
 });
   const [showEdit, setShowEdit] = useState(false);
   const [editVals, setEditVals] = useState({ focus:25, short:5, long:15 });
+  const [editingId,   setEditingId]   = useState(null);
+  const [editingText, setEditingText] = useState("");
 
   // ── Wallpaper state (Feature 1 + 4 + 7) ──
   const [showWpPanel, setShowWpPanel] = useState(false);
@@ -167,6 +175,10 @@ const {
   // ── Computed ──
   const pct      = ((total - seconds) / total) * 100;
   const ringSize =  Math.min(260, window.innerWidth - 80);
+  const focusDayBounds = getFocusDayBounds(new Date(), focusDayStartMinutes);
+  const todayLog = log.filter(entry =>
+    typeof entry === "string" || isSessionInFocusDay(entry.completedAt, focusDayBounds)
+  );
 
 // ── Persist Snapshot ──
   usePersistSnapshot({
@@ -184,6 +196,7 @@ const {
   [STORAGE_KEYS.CYCLES]:        String(cycles),
   [STORAGE_KEYS.LOG]:           log,
   [STORAGE_KEYS.MODE_REMAINING]:modeRemaining,
+  [STORAGE_KEYS.FOCUS_DAY_START]: String(focusDayStartMinutes),
 });
 // ── Keyboard Shortcuts ──
 useEffect(() => {
@@ -213,7 +226,7 @@ useEffect(() => {
 
   function clampEdit(key,val){ setEditVals(e=>({...e,[key]:parseInt(val)||1})); }
   function openEdit(){
-    setEditVals({ focus:modes[0].minutes, short:modes[1].minutes, long:modes[2].minutes });
+    setEditVals({ focus:modes[0].minutes, short:modes[1].minutes, long:modes[2].minutes, focusDayStartMinutes });
     setShowEdit(true);
   }
 
@@ -262,36 +275,33 @@ const panelStyle = PANEL_BACKDROP;
 
       {/* ═══ TOPBAR ═══ */}
       <header style={{
-        position:"sticky",
-        top:0,
-        zIndex:50,
-        height:64,
-        padding:"0 clamp(16px,4vw,40px)",
-        display:"flex",
-        alignItems:"center",
-        gap:14,
-        background: hasBg
-          ? `rgba(12,12,18,${0.70 + wpOverlay*0.14})`
-          : "rgba(255,255,255,.075)",
-        backdropFilter:"blur(28px)",
-        WebkitBackdropFilter:"blur(28px)",
-        borderBottom:"1px solid rgba(255,255,255,.10)",
-        boxShadow:"inset 0 1px 0 rgba(255,255,255,.14), 0 12px 40px rgba(0,0,0,.18)",
-      }}>
-        <button className="ctrl" aria-label="Go back to dashboard" onClick={()=>onNavigate("dashboard")} style={{
-          ...btnBase,
-          width:40,
-          height:40,
-          borderRadius:999,
-          background:"rgba(255,255,255,.10)",
-          border:"1px solid rgba(255,255,255,.12)",
-          color:"rgba(229,226,227,.82)",
-          fontSize:18,
-          display:"flex",
-          alignItems:"center",
-          justifyContent:"center",
-          boxShadow:"inset 0 1px 0 rgba(255,255,255,.14)",
-        }}>←</button>
+  position:"sticky",
+  top:14,
+  zIndex:50,
+
+  width:"calc(100% - 32px)",
+  maxWidth:1120,
+  height:64,
+  margin:"14px auto 28px",
+
+  padding:"0 clamp(18px,4vw,28px)",
+  boxSizing:"border-box",
+
+  display:"flex",
+  alignItems:"center",
+  justifyContent:"space-between",
+  gap:16,
+
+  borderRadius:32,
+  overflow:"hidden",
+
+  background:"linear-gradient(145deg,rgba(255,255,255,.105),rgba(255,255,255,.055))",
+  backdropFilter:"blur(30px)",
+  WebkitBackdropFilter:"blur(30px)",
+
+  border:"1px solid rgba(255,255,255,.13)",
+  boxShadow:"inset 0 1px 0 rgba(255,255,255,.16), 0 18px 55px rgba(0,0,0,.28)",
+}}>
 
         <div style={{
   display:"flex",
@@ -319,7 +329,7 @@ const panelStyle = PANEL_BACKDROP;
           {sessions > 0 && (
             <div style={{ padding:"4px 12px", borderRadius:20, fontSize:10, fontWeight:700,
               background:"rgba(52,211,153,.12)", border:"1px solid rgba(52,211,153,.28)", color:"#34d399" }}>
-              {sessions} done ✓
+              {sessions} done 
             </div>
           )}
           <button className="icon-btn" onClick={()=>setShowWpPanel(p=>!p)} style={{
@@ -500,71 +510,100 @@ const panelStyle = PANEL_BACKDROP;
       {/* ═══ EDIT MODAL ═══ */}
       {showEdit && (
         <div style={panelStyle} onClick={()=>setShowEdit(false)}>
-          <div className="fu" onClick={e=>e.stopPropagation()} style={{
-            width:"100%", maxWidth:380, background:"#0f0f1e",
-            border:"1px solid rgba(167,139,250,.22)", borderRadius:22, padding:24,
-            boxShadow:"0 0 60px rgba(167,139,250,.12)",
+          <div className="fu edit-modal-panel" onClick={e=>e.stopPropagation()} style={{
+            boxShadow: `0 24px 60px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.12), 0 0 35px ${effectiveGlow || "rgba(192, 193, 255, 0.15)"}`,
           }}>
-            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:18 }}>
+            <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:20 }}>
               <div>
-                <p style={{ fontSize:17, fontWeight:800, letterSpacing:"-0.3px" }}>Edit Timer</p>
-                <p style={{ fontSize:12, color:"rgba(255,255,255,.3)", marginTop:3 }}>Timer will reset after saving.</p>
+                <p style={{ fontSize:18, fontWeight:800, letterSpacing:"-0.4px", color:"rgba(255,255,255,0.95)" }}>Edit Timer</p>
+                <p style={{ fontSize:11, color:"rgba(255,255,255,.35)", marginTop:4 }}>The timer will be reset upon saving.</p>
               </div>
-              <button style={{ ...btnBase, background:"transparent", border:"none",
-                color:"rgba(255,255,255,.2)", fontSize:18, padding:"2px 5px" }}
-                onClick={()=>setShowEdit(false)}>✕</button>
+              <button className="edit-modal-close" style={btnBase} onClick={()=>setShowEdit(false)}>✕</button>
             </div>
             {[
               { key:"focus", label:"Focus Session", color:"#34d399", max:90 },
               { key:"short", label:"Short Break",   color:"#60a5fa", max:30 },
               { key:"long",  label:"Long Break",    color:"#a78bfa", max:60 },
             ].map(item=>(
-              <div key={item.key} style={{ marginBottom:20, padding:"14px 16px",
-                background:"rgba(255,255,255,.025)",
-                border:"1px solid rgba(255,255,255,.06)", borderRadius:14 }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+              <div key={item.key} className="edit-timer-card">
+                <div className="edit-timer-card-header">
                   <span style={{ fontSize:13, fontWeight:700, color:item.color }}>{item.label}</span>
                   <span style={{ fontSize:10, color:"rgba(255,255,255,.2)" }}>max {item.max} min</span>
                 </div>
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                <div className="edit-timer-card-body">
                   <input type="range" min={1} max={item.max} value={editVals[item.key]}
                     onChange={e=>clampEdit(item.key, e.target.value)}
-                    style={{ flex:1, accentColor:item.color, cursor:"pointer" }}/>
-                  <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    className="glass-slider"
+                    style={{
+                      '--slider-color': item.color
+                    }}/>
+                  <div className="edit-timer-controls">
                     {["-","+"].map((sym,si)=>(
-                      <button key={sym} style={{ ...btnBase, width:26, height:26, borderRadius:7,
-                        background:"rgba(255,255,255,.06)", border:"1px solid rgba(255,255,255,.09)",
-                        color:"rgba(255,255,255,.5)", fontSize:14,
-                        display:"flex", alignItems:"center", justifyContent:"center" }}
+                      <button key={sym}
+                        className="edit-timer-btn"
+                        style={btnBase}
                         onClick={()=>clampEdit(item.key, editVals[item.key]+(si?1:-1))}>
                         {sym}
                       </button>
                     ))}
                     <input type="number" min={1} max={item.max} value={editVals[item.key]}
                       onChange={e=>clampEdit(item.key, e.target.value)}
-                      style={{ width:44, padding:"4px 6px", textAlign:"center",
-                        background:"rgba(255,255,255,.05)", border:"1px solid rgba(255,255,255,.09)",
-                        borderRadius:7, color:item.color, fontSize:14,
-                        fontWeight:800, fontFamily:"inherit", outline:"none" }}/>
+                      className="apple-number-input"/>
+                    <span className="min-label">min</span>
                   </div>
-                  <span style={{ fontSize:11, color:"rgba(255,255,255,.25)", fontWeight:600 }}>min</span>
                 </div>
               </div>
             ))}
-            <div style={{ display:"flex", gap:8, marginTop:16 }}>
-              <button style={{ ...btnBase, flex:1, padding:12, borderRadius:10, border:"none",
-                background:"linear-gradient(135deg,#7c3aed,#a855f7)",
-                color:"#fff", fontWeight:800, fontSize:13,
-                boxShadow:"0 4px 18px rgba(124,58,237,.4)" }}
-                onClick={() => saveSettings(editVals)}>Save & Reset</button>
-              <button style={{ ...btnBase, padding:"12px 14px", borderRadius:10,
-                background:"transparent", border:"1px solid rgba(255,255,255,.09)",
-                color:"rgba(255,255,255,.4)", fontSize:13 }}
+            {/* Focus day start */}
+            <div className="edit-timer-card">
+              <div style={{ display:"flex", alignItems:"center",
+                justifyContent:"space-between", marginBottom:10 }}>
+                <span style={{ fontSize:13, fontWeight:700, color:"#f0abfc" }}>Focus Day Starts At</span>
+                <span style={{ fontSize:10, color:"rgba(255,255,255,.25)" }}>24-hour window</span>
+              </div>
+              <input type="time"
+                value={formatMinutesToTimeInput(editVals.focusDayStartMinutes ?? focusDayStartMinutes)}
+                onChange={e => setEditVals(v => ({
+                  ...v, focusDayStartMinutes: parseTimeInputToMinutes(e.target.value),
+                }))}
+                className="glass-time-input"/>
+              <p style={{ fontSize:10, color:"rgba(255,255,255,.25)", marginTop:8, lineHeight: 1.4 }}>
+                Sessions completed before this time will count toward the previous focus day.
+              </p>
+            </div>
+
+            <div className="edit-modal-actions">
+              <button
+                className="btn-save-reset"
+                style={{
+                  ...btnBase,
+                  background: accentColor 
+                    ? `linear-gradient(135deg, ${accentColor}, ${accentColor}dd)`
+                    : "linear-gradient(135deg, #7c3aed, #a855f7)",
+                  boxShadow: `0 8px 24px ${accentColor ? accentColor + "55" : "rgba(124,58,237,.35)"}, inset 0 1px 0 rgba(255,255,255,.2)`,
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.transform = "translateY(-1px)";
+                  e.currentTarget.style.boxShadow = `0 12px 28px ${accentColor ? accentColor + "77" : "rgba(124,58,237,.45)"}, inset 0 1px 0 rgba(255,255,255,.2)`;
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = `0 8px 24px ${accentColor ? accentColor + "55" : "rgba(124,58,237,.35)"}, inset 0 1px 0 rgba(255,255,255,.2)`;
+                }}
+                onClick={() => {
+                  if (editVals.focusDayStartMinutes !== undefined)
+                    setFocusDayStartMinutes(editVals.focusDayStartMinutes);
+                  saveSettings(editVals);
+                  setShowEdit(false);
+                }}>Save & Reset</button>
+              <button
+                className="btn-cancel"
+                style={btnBase}
                 onClick={()=>setShowEdit(false)}>Cancel</button>
-              <button style={{ ...btnBase, padding:"12px 14px", borderRadius:10,
-                background:"transparent", border:"1px solid rgba(255,255,255,.09)",
-                color:"rgba(255,255,255,.3)", fontSize:11, fontWeight:600 }}
-                onClick={()=>setEditVals({ focus:25, short:5, long:15 })}>Defaults</button>
+              <button
+                className="btn-defaults"
+                style={btnBase}
+                onClick={()=>setEditVals({ focus:25, short:5, long:15, focusDayStartMinutes:0 })}>Defaults</button>
             </div>
           </div>
         </div>
@@ -775,7 +814,7 @@ const panelStyle = PANEL_BACKDROP;
         </div>
 
         {/* Session log */}
-        {log.length > 0 && (
+        {todayLog.length > 0 && (
           <div className="fu fu4" style={{ ...glassCard, padding:"18px 20px" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
               <div style={{ width:32, height:32, borderRadius:10,
@@ -784,22 +823,141 @@ const panelStyle = PANEL_BACKDROP;
                 display:"flex", alignItems:"center", justifyContent:"center", fontSize:14 }}>📋</div>
               <div>
                 <p style={{ fontSize:13, fontWeight:700 }}>Session Log</p>
-                <p style={{ fontSize:10, color:"rgba(255,255,255,.3)", marginTop:1 }}>{log.length} entries today</p>
+                <p style={{ fontSize:10, color:"rgba(255,255,255,.3)", marginTop:1 }}>
+                  {todayLog.length} entries · focus day
+                </p>
               </div>
             </div>
             <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-              {log.map((entry,i)=>(
-                <div key={i} className="log-row" style={{ animationDelay:`${i*0.04}s`,
-                  padding:"9px 12px", borderRadius:10,
-                  background:"rgba(255,255,255,.025)", border:"1px solid rgba(255,255,255,.05)",
-                  fontSize:12, fontWeight:500,
-                  color: entry.startsWith("✓") ? "#34d399" : "rgba(255,255,255,.4)" }}>
-                  {entry}
-                </div>
-              ))}
+              {todayLog.map((entry, i) => {
+                // legacy string
+                if (typeof entry === "string") return (
+                  <div key={i} className="log-row" style={{ animationDelay:`${i*0.04}s`,
+                    padding:"9px 12px", borderRadius:10,
+                    background:"rgba(255,255,255,.025)", border:"1px solid rgba(255,255,255,.05)",
+                    fontSize:12, fontWeight:500,
+                    color: entry.startsWith("✓") ? "#34d399" : "rgba(255,255,255,.4)" }}>
+                    {entry}
+                  </div>
+                );
+                // object entry
+                const isFocus    = entry.mode === "focus";
+                const isEditing  = editingId === entry.id;
+                const display    = entry.customLabel || entry.subject || entry.label || (isFocus ? "Focus" : "Break");
+                const timeStr    = new Date(entry.completedAt)
+                  .toLocaleTimeString([], { hour:"2-digit", minute:"2-digit" });
+                return (
+                  <div key={entry.id} className="log-row"
+                    style={{ animationDelay:`${i*0.04}s`,
+                      padding:"9px 12px", borderRadius:10,
+                      background:"rgba(255,255,255,.025)", border:"1px solid rgba(255,255,255,.05)",
+                      display:"flex", alignItems:"center", gap:8 }}>
+                    <span style={{ width:6, height:6, borderRadius:"50%", flexShrink:0,
+                      background: isFocus ? "#34d399" : "rgba(255,255,255,.25)",
+                      boxShadow: isFocus ? "0 0 6px #34d399" : "none" }}/>
+                    {isEditing ? (
+                      <>
+                        <input autoFocus value={editingText}
+                          onChange={e => setEditingText(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === "Enter")  { editSessionLabel(entry.id, editingText); setEditingId(null); }
+                            if (e.key === "Escape") { setEditingId(null); }
+                          }}
+                          placeholder={entry.label}
+                          style={{ flex:1, background:"rgba(255,255,255,.08)",
+                            border:"1px solid rgba(255,255,255,.12)", borderRadius:18,
+                            color:"rgba(245,245,247,.95)", fontSize:12, fontWeight:500,
+                            padding:"6px 14px", outline:"none", fontFamily:"inherit",
+                            boxShadow:"inset 0 1px 2px rgba(0,0,0,0.2)", minWidth:0 }}/>
+                        <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                          <button
+                            onClick={() => {
+                              editSessionLabel(entry.id, editingText);
+                              setEditingId(null);
+                            }}
+                            style={{
+                              ...btnBase,
+                              padding: "6px 12px",
+                              borderRadius: "999px",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              background: accentColor ? `${accentColor}18` : "rgba(167,139,250,.15)",
+                              border: `1px solid ${accentColor ? `${accentColor}44` : "rgba(167,139,250,.3)"}`,
+                              color: accentColor || "#a78bfa",
+                              boxShadow: "inset 0 1px 0 rgba(255,255,255,.1)",
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = accentColor ? `${accentColor}33` : "rgba(167,139,250,.25)";
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = accentColor ? `${accentColor}18` : "rgba(167,139,250,.15)";
+                            }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            style={{
+                              ...btnBase,
+                              padding: "6px 12px",
+                              borderRadius: "999px",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                              background: "rgba(255,255,255,.05)",
+                              border: "1px solid rgba(255,255,255,.1)",
+                              color: "rgba(255,255,255,.5)",
+                            }}
+                            onMouseEnter={e => {
+                              e.currentTarget.style.background = "rgba(255,255,255,.1)";
+                              e.currentTarget.style.color = "rgba(255,255,255,.7)";
+                            }}
+                            onMouseLeave={e => {
+                              e.currentTarget.style.background = "rgba(255,255,255,.05)";
+                              e.currentTarget.style.color = "rgba(255,255,255,.5)";
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <span onClick={() => { if (!isFocus) return; setEditingId(entry.id); setEditingText(entry.customLabel || entry.subject || ""); }}
+                        style={{ flex:1, fontSize:12, fontWeight:500,
+                          color: isFocus ? "#34d399" : "rgba(255,255,255,.4)",
+                          cursor: isFocus ? "text" : "default" }}>
+                        {isFocus ? `✓ ${display}` : display}
+                      </span>
+                    )}
+                    <span style={{ fontSize:10, color:"rgba(255,255,255,.22)", flexShrink:0 }}>{timeStr}</span>
+                    {isFocus && !isEditing && (
+                      <span onClick={() => { setEditingId(entry.id); setEditingText(entry.customLabel || entry.subject || ""); }}
+                        style={{
+                          fontSize: 12,
+                          color: "rgba(255,255,255,.2)",
+                          cursor: "pointer",
+                          flexShrink: 0,
+                          transition: "color 0.2s ease, opacity 0.2s ease",
+                          padding: "4px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          opacity: 0.5,
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.color = accentColor || "#4cd7f6";
+                          e.currentTarget.style.opacity = "1";
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.color = "rgba(255,255,255,.2)";
+                          e.currentTarget.style.opacity = "0.5";
+                        }}
+                        title="Edit label">✎</span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
-         )}
+        )}
       </main>
     </div>
    );
