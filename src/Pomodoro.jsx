@@ -984,6 +984,32 @@ const panelStyle = PANEL_BACKDROP;
             )}
           </div>
         )}
+
+        <section className="focus-footer-cta glass-card-soft">
+          <div>
+            <p className="focus-footer-title">Need the full student dashboard?</p>
+            <p className="focus-footer-subtitle">Track attendance, tasks, deadlines, and focus sessions in CollaDO.</p>
+          </div>
+          <a
+            href="https://collado.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="focus-footer-link"
+          >
+            Open CollaDO Track →
+          </a>
+        </section>
+
+        <footer className="focus-legal-footer">
+          <p>© 2026 CollaDO. Focus data is stored locally on your device.</p>
+          <nav aria-label="Legal links">
+            <button type="button">Privacy</button>
+            <span>·</span>
+            <button type="button">Terms</button>
+            <span>·</span>
+            <a href="mailto:hello@collado.app">Contact</a>
+          </nav>
+        </footer>
       </main>
     </div>
    );
