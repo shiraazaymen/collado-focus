@@ -151,23 +151,30 @@ export function usePomodoroTimer({
     const curSessions = sessionsRef.current;
     const curCycles   = cyclesRef.current;
     const curModes    = modesRef.current;
+    const completedAt = Date.now();
+    const durationSeconds = (Number(curModes[curModeIdx]?.minutes) || Number(DEFAULT_MODES[curModeIdx]?.minutes) || 25) * 60;
+    const modeKey = curModeIdx === 0 ? "focus" : curModeIdx === 2 ? "long" : "short";
+    const label = curModeIdx === 0 ? "Focus" : curModeIdx === 2 ? "Long Break" : "Short Break";
+    const baseLogEntry = {
+      id:              `${completedAt}-${Math.random().toString(36).slice(2,7)}`,
+      mode:            modeKey,
+      label,
+      subject:         "",
+      durationSeconds,
+      seconds:         durationSeconds,
+      completedAt,
+      createdAt:       completedAt,
+    };
 
     if (curModeIdx === 0) {
       const newSessions = curSessions + 1;
       setSessions(newSessions);
-      setLog(prev => [{
-        id:          `${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
-        mode:        "focus",
-        label:       "Focus",
-        subject:     "",
-        seconds:     curModes[0].minutes * 60,
-        completedAt: Date.now(),
-      }, ...prev].slice(0, 20));
+      setLog(prev => [baseLogEntry, ...prev].slice(0, 20));
       const nextIdx = getNextModeIdx(0, newSessions);
       if (nextIdx === 2) setCycles(curCycles + 1);
       _switchMode(nextIdx, curModes, true);
     } else {
-      setLog(prev => [`☕ Break ended — ${now}`, ...prev].slice(0, 20));
+      setLog(prev => [{ ...baseLogEntry, label: `${label} ended`, completedLabel: `${label} ended`, legacyText: `Break ended - ${now}` }, ...prev].slice(0, 20));
       _switchMode(0, curModes, true);
     }
   }, [_switchMode]);

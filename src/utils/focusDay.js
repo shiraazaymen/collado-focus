@@ -4,7 +4,7 @@
  *
  * @param {Date|number|string} date - The date to check
  * @param {number} focusDayStartMinutes - Minutes from midnight when the focus day starts
- * @returns {{ start: number, end: number }} Timestamps representing the bounds
+ * @returns {{ start: Date, end: Date, startMs: number, endMs: number }} Focus day bounds
  */
 export function getFocusDayBounds(date = new Date(), focusDayStartMinutes = 0) {
   const d = new Date(date);
@@ -28,22 +28,36 @@ export function getFocusDayBounds(date = new Date(), focusDayStartMinutes = 0) {
   }
 
   return {
-    start: start.getTime(),
-    end: end.getTime(),
+    start,
+    end,
+    startMs: start.getTime(),
+    endMs: end.getTime(),
   };
 }
 
 /**
  * Checks if a session completion timestamp falls within the focus day bounds.
  *
- * @param {number} completedAt - Session completion timestamp
- * @param {{ start: number, end: number }} bounds - Focus day bounds
+ * @param {number|string|Date} completedAt - Session completion timestamp
+ * @param {{ start?: Date|number, end?: Date|number, startMs?: number, endMs?: number }} bounds - Focus day bounds
  * @returns {boolean}
  */
 export function isSessionInFocusDay(completedAt, bounds) {
   if (!completedAt || !bounds) return false;
   const time = typeof completedAt === "number" ? completedAt : new Date(completedAt).getTime();
-  return time >= bounds.start && time < bounds.end;
+  if (!Number.isFinite(time)) return false;
+  const startMs = Number.isFinite(bounds.startMs)
+    ? bounds.startMs
+    : bounds.start instanceof Date
+      ? bounds.start.getTime()
+      : Number(bounds.start);
+  const endMs = Number.isFinite(bounds.endMs)
+    ? bounds.endMs
+    : bounds.end instanceof Date
+      ? bounds.end.getTime()
+      : Number(bounds.end);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return false;
+  return time >= startMs && time < endMs;
 }
 
 /**

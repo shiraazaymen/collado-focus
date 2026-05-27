@@ -27,6 +27,8 @@ const WallpaperBackground = React.memo(function WallpaperBackground({
   const layerBase = {
     position:        "fixed",
     inset:           0,
+    width:           "100vw",
+    height:          "100vh",
     zIndex:          0,
     pointerEvents:   "none",
     backgroundSize:  "cover",
@@ -49,8 +51,8 @@ const WallpaperBackground = React.memo(function WallpaperBackground({
             position:   "fixed",
             inset:      0,
             zIndex:     0,
-            width:      "100%",
-            height:     "100%",
+            width:      "100vw",
+            height:     "100vh",
             objectFit:  "cover",
             transform:  "translateZ(0)",
           }}
@@ -90,6 +92,8 @@ const WallpaperBackground = React.memo(function WallpaperBackground({
           style={{
             position:      "fixed",
             inset:         0,
+            width:         "100vw",
+            height:        "100vh",
             zIndex:        1,
             pointerEvents: "none",
             background:    `rgba(7,7,15,${wpOverlay})`,
